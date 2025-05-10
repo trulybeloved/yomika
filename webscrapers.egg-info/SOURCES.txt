@@ -1,6 +1,0 @@
-setup.py
-tests/test_webscrape_requests.py
-webscrapers.egg-info/PKG-INFO
-webscrapers.egg-info/SOURCES.txt
-webscrapers.egg-info/dependency_links.txt
-webscrapers.egg-info/top_level.txt

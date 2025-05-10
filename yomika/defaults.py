@@ -2,6 +2,13 @@ from dataclasses import dataclass
 
 @dataclass
 class Defaults:
+        _instance = None
+
+        def __new__(cls, *args, **kwargs):
+                """This class method ensures that only one instance of the class exists"""
+                if cls._instance is None:
+                        cls._instance = super(Defaults, cls).__new__(cls)
+                return cls._instance
 
         DEFAULT_HTTP_HEADERS = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -13,7 +20,7 @@ class Defaults:
             }
 
         DEFAULT_REQ_TIMEOUT = 30
-        DEFAULT_RPS_LIMIT = 5
+        DEFAULT_RPS_LIMIT = 250
 
         # backoff-retry
         DEFAULT_MAX_RETRIES = 3

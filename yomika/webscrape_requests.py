@@ -1,108 +1,45 @@
-from dataclasses import dataclass
 import time
-from typing import Dict, Optional, Union, Any, Tuple
+from typing import Dict, Optional, Any
 import logging
 
 import requests
 import backoff
 
-from . import defaults
+from .defaults import Defaults
 from .modules.url_validator import is_valid_url
 from .modules.utils import backoff_handler_generic
-
-Defaults = defaults.Defaults
-
-@dataclass
-class ScrapedResponse:
-    """Data class for storing scraping results with metadata."""
-    url: str
-    status_code: int
-    content: bytes
-    text: str
-    headers: Dict[str, str]
-    elapsed_time: float
-    content_type: str
-    success: bool
-    error: Optional[str] = None
-
-class InvalidURLError(Exception):
-    """Exception raised when the URL is invalid."""
-    pass
-
-class WebPageLoadError(Exception):
-    """Exception raised when a web page fails to load."""
-    pass
-
-class RateLimitExceededError(Exception):
-    """Exception raised when rate limit is exceeded."""
-    pass
-
-class ContentTypeError(Exception):
-    """Exception raised when the content type is unexpected."""
-    pass
-
-
-class RequestRateLimiter:
-    """Simple rate limiter for web requests."""
-
-    def __init__(self, requests_per_second: float = Defaults.DEFAULT_RPS_LIMIT):
-        """
-        Initialize rate limiter.
-
-        Args:
-            requests_per_second: Maximum number of requests per second
-        """
-        self.min_interval = 1.0 / requests_per_second
-        self.last_request_time = 0
-
-    def wait(self):
-        """Wait if necessary to respect the rate limit."""
-        current_time = time.time()
-        time_since_last_request = current_time - self.last_request_time
-
-        if time_since_last_request < self.min_interval:
-            sleep_time = self.min_interval - time_since_last_request
-            time.sleep(sleep_time)
-
-        self.last_request_time = time.time()
-
+from .exceptions import WebPageLoadError, ContentTypeError, InvalidURLError, RateLimitExceededError
+from .custom_dataclasses import ScrapedResponse, WebscrapeConfig
 
 
 @backoff.on_exception(
     backoff.expo,
     exception=(WebPageLoadError,
-        requests.RequestException,
-        RateLimitExceededError,
-        ConnectionError),
+               requests.RequestException,
+               RateLimitExceededError,
+               ConnectionError),
     max_tries=Defaults.DEFAULT_MAX_RETRIES,
     max_time=Defaults.DEFAULT_MAX_TIME,
     on_backoff=backoff_handler_generic)
 def webscrape_requests(
         url: str,
-        custom_headers: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, Any]] = None,
-        cookies: Optional[Dict[str, str]] = None,
-        timeout: int = Defaults.DEFAULT_REQ_TIMEOUT,
-        allow_redirects: bool = True,
-        verify_ssl: bool = True,
-        expected_content_type: Optional[str] = None,
-        proxy: Optional[Dict[str, str]] = None,
-        rate_limiter: Optional[RequestRateLimiter] = None
+        config: WebscrapeConfig = WebscrapeConfig
 ) -> ScrapedResponse:
     """
     Fetch DOM contents of a web page. SSRed HTML only, Cannot handle JS/CSR.
 
     Args:
         url: URL to scrape
-        custom_headers: Custom HTTP headers to send with the request
-        params: URL parameters for the request
-        cookies: Cookies to send with the request
-        timeout: Request timeout in seconds
-        allow_redirects: Whether to follow redirects
-        verify_ssl: Whether to verify SSL certificates
-        expected_content_type: Expected content type (e.g., 'text/html')
-        proxy: Proxy configuration dict (e.g., {'http': 'http://proxy.com:8080'})
-        rate_limiter: Optional rate limiter object
+        config: Webscraper Configuration of Class WebscrapeConfig
+            # custom_headers: Custom HTTP headers to send with the request
+            # params: URL parameters for the request
+            # cookies: Cookies to send with the request
+            # timeout: Request timeout in seconds
+            # allow_redirects: Whether to follow redirects
+            # verify_ssl: Whether to verify SSL certificates
+            # expected_content_type: Expected content type (e.g., 'text/html')
+            # proxy: Proxy configuration dict (e.g., {'http': 'http://proxy.com:8080'})
+            # rate_limiter: Optional rate limiter object
 
     Returns:
         ScrapedResponse: Object containing the response and metadata
@@ -115,43 +52,36 @@ def webscrape_requests(
     start_time = time.time()
     error_message = None
 
-    if rate_limiter:
-        rate_limiter.wait()
+    if config.rate_limiter:
+        config.rate_limiter.wait()
 
     # Validate URL
     if not is_valid_url(url):
         raise InvalidURLError(f"Invalid URL format: {url}")
 
     # Set up headers
-    headers = custom_headers or {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Cache-Control': 'max-age=0',
-    }
+    headers = config.custom_headers or Defaults.DEFAULT_HTTP_HEADERS
 
     try:
         with requests.Session() as session:
             response = session.get(
                 url,
                 headers=headers,
-                params=params,
-                cookies=cookies,
-                timeout=timeout,
-                allow_redirects=allow_redirects,
-                verify=verify_ssl,
-                proxies=proxy
+                params=config.params,
+                cookies=config.cookies,
+                timeout=config.timeout,
+                allow_redirects=config.allow_redirects,
+                verify=config.verify_ssl,
+                proxies=config.proxy
             )
 
             # Raise for HTTP errors
             response.raise_for_status()
 
             # Check content type if expected type is provided
-            if expected_content_type and expected_content_type not in response.headers.get('Content-Type', ''):
+            if config.expected_content_type and config.expected_content_type not in response.headers.get('Content-Type', ''):
                 raise ContentTypeError(
-                    f"Expected content type '{expected_content_type}' but got "
+                    f"Expected content type '{config.expected_content_type}' but got "
                     f"'{response.headers.get('Content-Type')}'"
                 )
 
@@ -215,7 +145,3 @@ def webscrape_requests(
         success=False,
         error=error_message
     )
-
-
-if __name__ == "__main__":
-    pass
