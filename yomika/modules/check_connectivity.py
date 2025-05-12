@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("connectivity_checker")
 
-# Default configuration - can be modified as needed
+# Default configuration
 DEFAULT_CONFIG = {
     "timeout": 5,  # seconds
     "retry_count": 2,
