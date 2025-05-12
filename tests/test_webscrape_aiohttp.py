@@ -1,6 +1,6 @@
 from yomika.webscrape_aiohttp import webscrape_aiohttp
 from yomika.processors import run_async, scrape_url_list_async
-from yomika.custom_dataclasses import ScrapedResponse
+from yomika.classes import ScrapedResponse
 
 def test_scrape_url():
 

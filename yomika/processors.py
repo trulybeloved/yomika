@@ -5,7 +5,7 @@ from typing import Coroutine, Callable
 
 import aiohttp
 
-from .custom_dataclasses import ScrapedResponse, WebscrapeConfig
+from .classes import ScrapedResponse, WebscrapeConfig
 from .webscrape_requests import webscrape_requests
 from .webscrape_aiohttp import webscrape_aiohttp
 

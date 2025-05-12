@@ -11,7 +11,7 @@ from .defaults import Defaults
 from .modules.url_validator import is_valid_url
 from .modules.utils import backoff_handler_generic
 from .exceptions import WebPageLoadError, ContentTypeError, InvalidURLError, RateLimitExceededError
-from .custom_dataclasses import ScrapedResponse, WebscrapeConfig
+from .classes import ScrapedResponse, WebscrapeConfig
 
 
 @backoff.on_exception(
