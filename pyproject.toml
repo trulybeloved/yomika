@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "flit_core.build_meta"
+
+[project]
+name = "yomika"
+authors = [{name = "trulybeloved", email = "toshiroakari@gmail.com"}]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
